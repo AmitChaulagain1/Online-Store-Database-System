@@ -1,0 +1,281 @@
+PRAGMA foreign_keys = ON;
+
+-- 1. Customers
+CREATE TABLE IF NOT EXISTS Customers (
+    customer_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name    TEXT    NOT NULL,
+    last_name     TEXT    NOT NULL,
+    email         TEXT    NOT NULL UNIQUE,
+    phone         TEXT,
+    created_at    TEXT    NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+);
+
+-- 2. Addresses
+CREATE TABLE IF NOT EXISTS Addresses (
+    address_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id   INTEGER NOT NULL,
+    line1         TEXT    NOT NULL,
+    line2         TEXT,
+    city          TEXT    NOT NULL,
+    state         TEXT    NOT NULL,
+    postal_code   TEXT    NOT NULL,
+    country       TEXT    NOT NULL DEFAULT 'USA',
+    is_default    INTEGER NOT NULL DEFAULT 0,
+
+    FOREIGN KEY (customer_id)
+        REFERENCES Customers(customer_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- 3. Products
+CREATE TABLE IF NOT EXISTS Products (
+    product_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT    NOT NULL,
+    description   TEXT,
+    category      TEXT,
+    unit_price    NUMERIC NOT NULL,
+    stock_qty     INTEGER NOT NULL,
+    is_active     INTEGER NOT NULL DEFAULT 1
+);
+
+-- 4. Orders
+CREATE TABLE IF NOT EXISTS Orders (
+    order_id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id         INTEGER NOT NULL,
+    shipping_address_id INTEGER NOT NULL,
+    order_date          TEXT    NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+    status              TEXT    NOT NULL DEFAULT 'Pending',
+
+    FOREIGN KEY (customer_id)
+        REFERENCES Customers(customer_id)
+        ON UPDATE CASCADE
+        ON DELETE NO ACTION,
+
+    FOREIGN KEY (shipping_address_id)
+        REFERENCES Addresses(address_id)
+        ON UPDATE CASCADE
+        ON DELETE NO ACTION
+);
+
+-- 5. Order_Items (line items)
+CREATE TABLE IF NOT EXISTS Order_Items (
+    order_item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id      INTEGER NOT NULL,
+    product_id    INTEGER NOT NULL,
+    quantity      INTEGER NOT NULL,
+    unit_price    NUMERIC NOT NULL,
+    line_total    NUMERIC GENERATED ALWAYS AS (quantity * unit_price) VIRTUAL,
+
+    FOREIGN KEY (order_id)
+        REFERENCES Orders(order_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (product_id)
+        REFERENCES Products(product_id)
+        ON UPDATE CASCADE
+        ON DELETE NO ACTION
+);
+
+-- 6. Payments
+CREATE TABLE IF NOT EXISTS Payments (
+    payment_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id      INTEGER NOT NULL,
+    amount        NUMERIC NOT NULL,
+    payment_date  TEXT    NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+    method        TEXT    NOT NULL,      
+    status        TEXT    NOT NULL DEFAULT 'Completed',
+    transaction_ref TEXT,
+
+    FOREIGN KEY (order_id)
+        REFERENCES Orders(order_id)
+        ON UPDATE CASCADE
+        ON DELETE NO ACTION
+);
+
+-- Customers
+INSERT INTO Customers (first_name, last_name, email, phone) VALUES
+('Amit',    'Chaulagain', 'amit@example.com',          '4051234567'),
+('Rifat',   'Hany',       'rifat@example.com',         '4059876543'),
+('John',    'Smith',      'john.smith@example.com',    '4055551111'),
+('Emma',    'Brown',      'emma.brown@example.com',    '4058889999'),
+('Michael', 'Clark',      'mclark@example.com',        '4051112222'),
+('Sophia',  'Davis',      'sophia.davis@example.com',  '4053334444'),
+('David',   'Wilson',     'david.wilson@example.com',  '4054445555'),
+('Isabella','Lopez',      'isabella.lopez@example.com','4052223333'),
+('James',   'Lee',        'james.lee@example.com',     '4059998888'),
+('Lily',    'Patel',      'lily.patel@example.com',    '4051012020');
+
+-- Addresses
+INSERT INTO Addresses (customer_id, line1, city, state, postal_code, country, is_default) VALUES
+(1, '101 Data St',      'OKC',    'OK', '73104', 'USA', 1),
+(2, '202 Analytics Ave','OKC',    'OK', '73105', 'USA', 1),
+(3, '333 Tech Blvd',    'Norman', 'OK', '73069', 'USA', 1),
+(4, '444 Cloud Drive',  'Edmond', 'OK', '73034', 'USA', 1),
+(5, '555 AI Lane',      'OKC',    'OK', '73106', 'USA', 1),
+(6, '666 ML Road',      'Norman', 'OK', '73071', 'USA', 1),
+(7, '777 Neural Ave',   'Edmond', 'OK', '73034', 'USA', 1),
+(8, '888 SQL Street',   'OKC',    'OK', '73112', 'USA', 1),
+(9, '999 Python Place', 'Norman', 'OK', '73072', 'USA', 1),
+(10,'123 Data Lake Rd', 'OKC',    'OK', '73118', 'USA', 1);
+
+-- Products
+INSERT INTO Products (name, description, category, unit_price, stock_qty) VALUES
+('Wireless Mouse',       'Ergonomic 2.4G mouse',                 'Electronics', 19.99, 200),
+('Mechanical Keyboard',  'RGB mechanical keyboard',              'Electronics', 59.99, 150),
+('Running Shoes',        'Lightweight running shoes',            'Fashion',     79.99, 120),
+('Laptop Bag',           'Waterproof 15-inch laptop bag',        'Accessories', 29.99, 180),
+('USB-C Cable',          'Fast charging cable',                  'Electronics', 9.99,  350),
+('Bluetooth Speaker',    'Portable mini speaker',                'Electronics', 24.99, 100),
+('Smart Watch',          'Fitness tracking smart watch',         'Wearables',   99.99, 90),
+('Desk Lamp',            'LED desk lamp with brightness control','Home',        15.99, 140),
+('Backpack',             'Casual travel backpack',               'Fashion',     39.99, 80),
+('Wireless Earbuds',     'Noise-canceling earbuds',              'Electronics', 49.99, 160);
+
+-- Orders
+INSERT INTO Orders (customer_id, shipping_address_id, status) VALUES
+(1, 1,  'Paid'),
+(2, 2,  'Pending'),
+(3, 3,  'Shipped'),
+(4, 4,  'Paid'),
+(5, 5,  'Cancelled'),
+(6, 6,  'Pending'),
+(7, 7,  'Paid'),
+(8, 8,  'Shipped'),
+(9, 9,  'Pending'),
+(10,10, 'Paid');
+
+-- Order_Items
+INSERT INTO Order_Items (order_id, product_id, quantity, unit_price) VALUES
+(1, 1, 2, 19.99),
+(1, 2, 1, 59.99),
+(2, 5, 3, 9.99),
+(2, 10,1, 49.99),
+(3, 3, 1, 79.99),
+(3, 4, 1, 29.99),
+(4, 6, 2, 24.99),
+(4, 1, 1, 19.99),
+(5, 9, 1, 39.99),
+(6, 8, 2, 15.99),
+(6, 5, 2, 9.99),
+(7, 7, 1, 99.99),
+(7, 10,1, 49.99),
+(8, 4, 1, 29.99),
+(8, 3, 1, 79.99),
+(9, 2, 1, 59.99),
+(9, 6, 1, 24.99),
+(10,8, 1, 15.99),
+(10,9, 1, 39.99),
+(10,1, 1, 19.99);
+
+-- Payments
+INSERT INTO Payments (order_id, amount, method, status) VALUES
+(1,  99.97, 'Card',  'Completed'),
+(3, 109.98, 'PayPal','Completed'),
+(4,  69.97, 'Card',  'Completed'),
+(7, 149.98, 'Card',  'Completed'),
+(8, 109.98, 'PayPal','Completed'),
+(10, 75.97, 'Card',  'Completed'),
+(2,  79.96, 'Card',  'Pending'),
+(6,  51.96, 'Card',  'Pending'),
+(9,  84.98, 'PayPal','Pending'),
+(5,  39.99, 'Card',  'Refunded');
+
+--TEST
+
+--See all customers
+SELECT * FROM Customers;
+
+--See all orders with customer name
+SELECT o.order_id, c.first_name, c.last_name, o.status, o.order_date
+FROM Orders o
+JOIN Customers c ON c.customer_id = o.customer_id;
+
+--See one order with its items
+SELECT o.order_id, p.name, oi.quantity, oi.unit_price
+FROM Orders o
+JOIN Order_Items oi ON o.order_id = oi.order_id
+JOIN Products p ON p.product_id = oi.product_id
+WHERE o.order_id = 1;
+
+--USE CASE SCENARIOS
+--1.What and when did customer named 'AMIT CHAULAGAIN' ordered with quantities and price?
+SELECT 
+    c.first_name || ' ' || c.last_name AS customer_name,
+    o.order_id,
+    o.order_date,
+    o.status,
+    p.name        AS product_name,
+    oi.quantity,
+    oi.unit_price,
+    oi.quantity * oi.unit_price AS line_total
+FROM Orders o
+JOIN Customers c   ON c.customer_id = o.customer_id
+JOIN Order_Items oi ON oi.order_id = o.order_id
+JOIN Products p    ON p.product_id = oi.product_id
+WHERE c.first_name = 'Amit'
+  AND c.last_name  = 'Chaulagain'
+ORDER BY o.order_date, o.order_id;
+
+--2 On average, how much does each customer spend per order?
+SELECT
+    c.customer_id,
+    c.first_name || ' ' || c.last_name AS customer_name,
+    Round(AVG(order_totals.order_total),2) AS avg_order_amount
+FROM (
+    SELECT
+        o.order_id,
+        o.customer_id,
+        SUM(oi.quantity * oi.unit_price) AS order_total
+    FROM Orders o
+    JOIN Order_Items oi
+        ON oi.order_id = o.order_id
+    GROUP BY o.order_id, o.customer_id
+) AS order_totals
+JOIN Customers c
+    ON c.customer_id = order_totals.customer_id
+GROUP BY c.customer_id, customer_name
+ORDER BY avg_order_amount DESC;
+
+
+--3.What are our top-selling products by revenue (not just quantity)?
+SELECT 
+    p.product_id,
+    p.name AS product_name,
+    SUM(oi.quantity) AS total_units_sold,
+    SUM(oi.quantity * oi.unit_price) AS total_revenue
+FROM Products p
+JOIN Order_Items oi ON oi.product_id = p.product_id
+JOIN Orders o       ON o.order_id = oi.order_id
+WHERE o.status <> 'Cancelled'
+GROUP BY p.product_id, product_name
+ORDER BY total_revenue DESC;
+
+--4 Show all orders that are pending or not fully paid, along with how much is still outstanding and which customer it belongs to.
+SELECT
+    o.order_id,
+    c.first_name || ' ' || c.last_name AS customer_name,
+    o.status,
+    SUM(oi.quantity * oi.unit_price) AS order_total,
+    IFNULL(pt.total_paid, 0) AS total_paid,
+    SUM(oi.quantity * oi.unit_price) - IFNULL(pt.total_paid, 0) AS outstanding_amount
+FROM Orders o
+JOIN Customers c
+  ON c.customer_id = o.customer_id
+JOIN Order_Items oi
+  ON oi.order_id = o.order_id
+LEFT JOIN (
+    SELECT order_id, SUM(amount) AS total_paid
+    FROM Payments
+    GROUP BY order_id
+) pt
+  ON pt.order_id = o.order_id
+GROUP BY
+    o.order_id, c.customer_id, c.first_name, c.last_name, o.status, pt.total_paid
+HAVING
+    o.status = 'Pending'
+    OR outstanding_amount > 0
+ORDER BY outstanding_amount DESC;
+
+
